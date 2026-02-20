@@ -19,28 +19,29 @@ async function loadServers() {
     `;
     serversBody.appendChild(tr);
   });
-  // 添加公钥编辑按钮事件监听
-  document.querySelectorAll('.key-btn').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      const hostname = e.target.dataset.hostname;
-      document.getElementById('edit-hostname').value = hostname;
-      // 加载现有公钥
-      try {
-        const res = await fetch(`/api/client-keys/${hostname}`);
-        if (res.ok) {
-          const data = await res.json();
-          document.getElementById('public-key-pem').value = data.public_key_pem || '';
-        } else {
-          document.getElementById('public-key-pem').value = '';
-        }
-      } catch (err) {
+}
+
+// 使用事件委托处理公钥编辑按钮点击
+serversBody.addEventListener('click', async (e) => {
+  if (e.target.classList.contains('key-btn')) {
+    const hostname = e.target.dataset.hostname;
+    document.getElementById('edit-hostname').value = hostname;
+    // 加载现有公钥
+    try {
+      const res = await fetch(`/api/client-keys/${hostname}`);
+      if (res.ok) {
+        const data = await res.json();
+        document.getElementById('public-key-pem').value = data.public_key_pem || '';
+      } else {
         document.getElementById('public-key-pem').value = '';
       }
-      // 显示模态框
-      document.getElementById('key-modal').style.display = 'block';
-    });
-  });
-}
+    } catch (err) {
+      document.getElementById('public-key-pem').value = '';
+    }
+    // 显示模态框
+    document.getElementById('key-modal').style.display = 'block';
+  }
+});
 
 async function loadTasks() {
   const res = await fetch("/api/tasks");
@@ -150,7 +151,7 @@ saveBtn.addEventListener('click', async () => {
     const res = await fetch(`/api/client-keys/${hostname}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ public_key_pem: publicKeyPem || null }),
+      body: JSON.stringify({ public_key_pem: publicKeyPem || '' }),
     });
     
     if (res.ok) {
