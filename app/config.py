@@ -14,6 +14,8 @@ class Settings:
         self.result_queue = os.getenv("SYS_RESULT_QUEUE", "cmd.result")
         self.monitor_queue = os.getenv("SYS_MONITOR_QUEUE", "monitor.heartbeat")
         self.heartbeat_routing_key = os.getenv("HEARTBEAT_ROUTING_KEY", "heartbeat")
+        self.sign_enabled = os.getenv("SIGN_ENABLED", "true").lower() in {"1", "true", "yes", "on"}
+        self.sign_private_key_path = os.getenv("SIGN_PRIVATE_KEY_PATH", "")
 
 
 settings = Settings()

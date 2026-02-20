@@ -94,3 +94,40 @@ def update_heartbeat(
     db.commit()
     db.refresh(server)
     return server
+
+
+def list_client_public_keys(db: Session) -> List[models.ClientPublicKey]:
+    return list(db.execute(select(models.ClientPublicKey)).scalars().all())
+
+
+def get_client_public_key(db: Session, hostname: str) -> Optional[models.ClientPublicKey]:
+    return db.execute(
+        select(models.ClientPublicKey).where(models.ClientPublicKey.hostname == hostname)
+    ).scalars().first()
+
+
+def upsert_client_public_key(
+    db: Session,
+    hostname: str,
+    public_key_pem: str,
+) -> models.ClientPublicKey:
+    existing = get_client_public_key(db, hostname)
+    if existing:
+        existing.public_key_pem = public_key_pem
+        db.commit()
+        db.refresh(existing)
+        return existing
+    record = models.ClientPublicKey(hostname=hostname, public_key_pem=public_key_pem)
+    db.add(record)
+    db.commit()
+    db.refresh(record)
+    return record
+
+
+def delete_client_public_key(db: Session, hostname: str) -> bool:
+    record = get_client_public_key(db, hostname)
+    if not record:
+        return False
+    db.delete(record)
+    db.commit()
+    return True

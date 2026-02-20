@@ -21,6 +21,7 @@ from app.db import SessionLocal
 from app.db import engine
 from app.mq import publish_command
 from app.mq import start_consumers
+from app.util.sign_util import load_public_key_from_pem
 
 app = FastAPI(title="DevOps Control Plane")
 
@@ -113,6 +114,36 @@ def create_command(command_in: schemas.CommandCreate, db: Session = Depends(get_
 def get_results(task_id: str, db: Session = Depends(get_db)) -> List[models.TaskResult]:
     return crud.list_task_results(db, task_id)
 
+
+@app.get("/api/client-keys", response_model=List[schemas.ClientPublicKeyOut])
+def list_client_keys(db: Session = Depends(get_db)) -> List[models.ClientPublicKey]:
+    return crud.list_client_public_keys(db)
+
+
+@app.get("/api/client-keys/{hostname}", response_model=schemas.ClientPublicKeyOut)
+def get_client_key(hostname: str, db: Session = Depends(get_db)) -> models.ClientPublicKey:
+    record = crud.get_client_public_key(db, hostname)
+    if not record:
+        raise HTTPException(status_code=404, detail="public key not found")
+    return record
+
+
+@app.put("/api/client-keys/{hostname}", response_model=schemas.ClientPublicKeyOut)
+def upsert_client_key(
+    hostname: str,
+    key_in: schemas.ClientPublicKeyIn,
+    db: Session = Depends(get_db),
+) -> models.ClientPublicKey:
+    if not load_public_key_from_pem(key_in.public_key_pem):
+        raise HTTPException(status_code=400, detail="invalid public key pem")
+    return crud.upsert_client_public_key(db, hostname, key_in.public_key_pem)
+
+
+@app.delete("/api/client-keys/{hostname}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_client_key(hostname: str, db: Session = Depends(get_db)) -> None:
+    deleted = crud.delete_client_public_key(db, hostname)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="public key not found")
 
 if __name__ == '__main__':
     uvicorn.run('main:app')

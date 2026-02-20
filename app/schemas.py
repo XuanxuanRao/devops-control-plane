@@ -54,3 +54,17 @@ class TaskResultOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class ClientPublicKeyIn(BaseModel):
+    public_key_pem: str
+
+
+class ClientPublicKeyOut(BaseModel):
+    hostname: str
+    public_key_pem: str
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True

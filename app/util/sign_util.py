@@ -50,7 +50,6 @@ class RSASigner:
 
         # 1. 序列化
         sign_content = _build_sorted_json(params)
-        print(sign_content)
 
         # 2. 签名 (使用 PKCS1v15 填充和 SHA256 算法)
         signature = self._private_key.sign(
@@ -60,8 +59,6 @@ class RSASigner:
         )
 
         # 3. Base64 编码
-        print(signature)
-        print(base64.b64encode(signature).decode('utf-8'))
         return base64.b64encode(signature).decode('utf-8')
 
     def verify(self, params: Dict[str, Any], signature_str: str) -> bool:
@@ -93,6 +90,44 @@ class RSASigner:
 
     def enabled(self) -> bool:
         return self._enabled
+
+
+def load_public_key_from_pem(pem_str: str) -> Optional[rsa.RSAPublicKey]:
+    if not pem_str:
+        return None
+    try:
+        key_bytes = pem_str.encode("utf-8")
+        return serialization.load_pem_public_key(key_bytes)
+    except Exception as e:
+        logger.warning(f"Failed to load public key from pem: {e}")
+        return None
+
+
+def verify_with_public_key(
+    params: Dict[str, Any],
+    signature_str: str,
+    public_key: Optional[rsa.RSAPublicKey],
+    enabled: bool = True,
+) -> bool:
+    if not enabled:
+        return True
+    if not public_key:
+        return False
+    if not signature_str:
+        raise ValueError("missing signature")
+    try:
+        sign_content = _build_sorted_json(params)
+        signature_bytes = base64.b64decode(signature_str)
+        public_key.verify(
+            signature_bytes,
+            sign_content,
+            padding.PKCS1v15(),
+            hashes.SHA256()
+        )
+        return True
+    except (InvalidSignature, Exception) as e:
+        logger.error(f"Signature verification failed: {e}")
+        return False
 
 # --- 使用示例 ---
 if __name__ == "__main__":

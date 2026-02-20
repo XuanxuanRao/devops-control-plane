@@ -47,3 +47,13 @@ class TaskResult(Base):
     stdout = Column(Text, nullable=True)
     stderr = Column(Text, nullable=True)
     timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+
+
+class ClientPublicKey(Base):
+    __tablename__ = "client_public_keys"
+
+    id = Column(Integer, primary_key=True, index=True)
+    hostname = Column(String(128), unique=True, index=True, nullable=False)
+    public_key_pem = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
