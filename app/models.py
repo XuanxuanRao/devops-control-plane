@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import Column
 from sqlalchemy import DateTime
@@ -21,7 +21,7 @@ class Server(Base):
     last_heartbeat = Column(DateTime, nullable=True)
     cpu_usage = Column(Float, nullable=True)
     memory_usage = Column(Float, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
 
 class Task(Base):
@@ -35,7 +35,7 @@ class Task(Base):
     timeout = Column(Integer, nullable=False)
     user = Column(String(64), nullable=True)
     status = Column(String(32), nullable=False, default="pending")
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
 
 class TaskResult(Base):
@@ -46,4 +46,4 @@ class TaskResult(Base):
     exit_code = Column(Integer, nullable=True)
     stdout = Column(Text, nullable=True)
     stderr = Column(Text, nullable=True)
-    timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
+    timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)

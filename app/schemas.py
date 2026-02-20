@@ -20,7 +20,7 @@ class ServerOut(BaseModel):
     memory_usage: Optional[float]
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class CommandCreate(BaseModel):
@@ -42,7 +42,7 @@ class TaskOut(BaseModel):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class TaskResultOut(BaseModel):
@@ -53,4 +53,4 @@ class TaskResultOut(BaseModel):
     timestamp: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True

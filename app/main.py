@@ -1,9 +1,10 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Generator
 from typing import List
 
+import uvicorn
 from fastapi import Depends
 from fastapi import FastAPI
 from fastapi import HTTPException
@@ -94,7 +95,7 @@ def create_command(command_in: schemas.CommandCreate, db: Session = Depends(get_
         timeout=command_in.timeout,
         user=command_in.user,
         status="sent",
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
     )
     crud.create_task(db, task)
     payload = {
@@ -102,8 +103,7 @@ def create_command(command_in: schemas.CommandCreate, db: Session = Depends(get_
         "command": command_in.command,
         "timeout": command_in.timeout,
         "user": command_in.user,
-        "timestamp": int(datetime.utcnow().timestamp()),
-        "sign": "",
+        "timestamp": int(datetime.now(timezone.utc).timestamp())
     }
     publish_command(payload, routing_key)
     return task
@@ -112,3 +112,7 @@ def create_command(command_in: schemas.CommandCreate, db: Session = Depends(get_
 @app.get("/api/tasks/{task_id}/results", response_model=List[schemas.TaskResultOut])
 def get_results(task_id: str, db: Session = Depends(get_db)) -> List[models.TaskResult]:
     return crud.list_task_results(db, task_id)
+
+
+if __name__ == '__main__':
+    uvicorn.run('main:app')

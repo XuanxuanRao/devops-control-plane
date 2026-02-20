@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List
 from typing import Optional
 
@@ -61,7 +61,7 @@ def create_task_result(
         exit_code=exit_code,
         stdout=stdout,
         stderr=stderr,
-        timestamp=timestamp or datetime.utcnow(),
+        timestamp=timestamp or datetime.now(timezone.utc),
     )
     db.add(result)
     db.commit()
