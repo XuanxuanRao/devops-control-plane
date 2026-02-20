@@ -5,9 +5,9 @@ class Settings:
     def __init__(self) -> None:
         self.database_url = os.getenv(
             "DATABASE_URL",
-            "mysql+pymysql://root:root@127.0.0.1:3306/devops_control_plane",
+            "mysql+pymysql://root:123456@127.0.0.1:13316/devops-control-plane",
         )
-        self.rabbitmq_url = os.getenv("RABBITMQ_URL", "amqp://guest:guest@127.0.0.1:5672/")
+        self.rabbitmq_url = os.getenv("RABBITMQ_URL", "amqp://rabbitmq:123456@127.0.0.1:15272/")
         self.sys_cmd_exchange = os.getenv("SYS_CMD_EXCHANGE", "sys_cmd_exchange")
         self.sys_result_exchange = os.getenv("SYS_RESULT_EXCHANGE", "sys_result_exchange")
         self.sys_monitor_exchange = os.getenv("SYS_MONITOR_EXCHANGE", "sys_monitor_exchange")

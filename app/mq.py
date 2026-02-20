@@ -74,11 +74,12 @@ def _consume_heartbeat() -> None:
 
             def callback(ch, method, properties, body) -> None:
                 data = json.loads(body.decode("utf-8"))
+                print("get heartbeat:", data)
                 hostname = data.get("hostname")
                 status = data.get("status", "unknown")
                 ts = data.get("timestamp")
                 cpu_usage = data.get("cpu_usage")
-                memory_usage = data.get("memory_usage")
+                memory_usage = data.get("mem_usage")
                 timestamp = datetime.utcfromtimestamp(ts) if isinstance(ts, (int, float)) else datetime.utcnow()
                 if hostname:
                     with SessionLocal() as db:
