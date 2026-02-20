@@ -27,10 +27,24 @@
               <th>Heartbeat</th>
               <th>CPU</th>
               <th>Memory</th>
+              <th>公钥管理</th>
             </tr>
           </thead>
           <tbody id="servers-body"></tbody>
         </table>
+        <!-- 公钥编辑模态框 -->
+        <div id="key-modal" class="modal">
+          <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>编辑公钥</h3>
+            <input type="hidden" id="edit-hostname">
+            <textarea id="public-key-pem" placeholder="输入公钥 PEM" rows="10"></textarea>
+            <div class="modal-actions">
+              <button id="save-key">保存</button>
+              <button id="cancel-key">取消</button>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="card">
         <h2>下发命令</h2>

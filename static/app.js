@@ -15,8 +15,30 @@ async function loadServers() {
       <td>${s.last_heartbeat || ""}</td>
       <td>${s.cpu_usage ?? ""}</td>
       <td>${s.memory_usage ?? ""}</td>
+      <td><button class="key-btn" data-hostname="${s.hostname}">编辑公钥</button></td>
     `;
     serversBody.appendChild(tr);
+  });
+  // 添加公钥编辑按钮事件监听
+  document.querySelectorAll('.key-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const hostname = e.target.dataset.hostname;
+      document.getElementById('edit-hostname').value = hostname;
+      // 加载现有公钥
+      try {
+        const res = await fetch(`/api/client-keys/${hostname}`);
+        if (res.ok) {
+          const data = await res.json();
+          document.getElementById('public-key-pem').value = data.public_key_pem || '';
+        } else {
+          document.getElementById('public-key-pem').value = '';
+        }
+      } catch (err) {
+        document.getElementById('public-key-pem').value = '';
+      }
+      // 显示模态框
+      document.getElementById('key-modal').style.display = 'block';
+    });
   });
 }
 
@@ -91,3 +113,54 @@ loadServers();
 loadTasks();
 setInterval(loadServers, 5000);
 setInterval(loadTasks, 5000);
+
+// 模态框控制
+const keyModal = document.getElementById('key-modal');
+const closeBtn = document.querySelector('.close');
+const saveBtn = document.getElementById('save-key');
+const cancelBtn = document.getElementById('cancel-key');
+
+// 关闭模态框
+closeBtn.addEventListener('click', () => {
+  keyModal.style.display = 'none';
+});
+
+cancelBtn.addEventListener('click', () => {
+  keyModal.style.display = 'none';
+});
+
+// 点击模态框外部关闭
+window.addEventListener('click', (e) => {
+  if (e.target === keyModal) {
+    keyModal.style.display = 'none';
+  }
+});
+
+// 保存公钥
+saveBtn.addEventListener('click', async () => {
+  const hostname = document.getElementById('edit-hostname').value;
+  const publicKeyPem = document.getElementById('public-key-pem').value.trim();
+  
+  if (!hostname) {
+    alert('Hostname不能为空');
+    return;
+  }
+  
+  try {
+    const res = await fetch(`/api/client-keys/${hostname}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ public_key_pem: publicKeyPem || null }),
+    });
+    
+    if (res.ok) {
+      alert('公钥保存成功');
+      keyModal.style.display = 'none';
+    } else {
+      const error = await res.json();
+      alert(`保存失败: ${error.detail || '未知错误'}`);
+    }
+  } catch (err) {
+    alert('保存失败: 网络错误');
+  }
+});
