@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>DevOps 控制平面</title>
+    <link rel="stylesheet" href="/static/style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>DevOps 控制平面</h1>
+      <div class="card">
+        <h2>服务器列表</h2>
+        <div class="row">
+          <input id="hostname" placeholder="hostname" />
+          <input id="ip" placeholder="ip" />
+          <input id="group" placeholder="group" />
+          <button id="add-server">添加服务器</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Hostname</th>
+              <th>IP</th>
+              <th>Group</th>
+              <th>Status</th>
+              <th>Heartbeat</th>
+              <th>CPU</th>
+              <th>Memory</th>
+            </tr>
+          </thead>
+          <tbody id="servers-body"></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <h2>下发命令</h2>
+        <div class="row">
+          <select id="target-type">
+            <option value="all">all</option>
+            <option value="node">node</option>
+            <option value="group">group</option>
+          </select>
+          <input id="target" placeholder="target" />
+          <input id="command" placeholder="command" />
+          <input id="timeout" placeholder="timeout" value="30" />
+          <input id="user" placeholder="user" />
+          <button id="send-command">发送</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>任务列表</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Task ID</th>
+              <th>Target</th>
+              <th>Command</th>
+              <th>Status</th>
+              <th>Created</th>
+              <th>Result</th>
+            </tr>
+          </thead>
+          <tbody id="tasks-body"></tbody>
+        </table>
+      </div>
+    </div>
+    <script src="/static/app.js"></script>
+  </body>
+</html>
