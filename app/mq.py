@@ -8,18 +8,16 @@ from typing import Dict
 
 import pika
 
-from app import crud
 from app.config import settings
-from app.db import SessionLocal
-from app.security.public_key_store import PublicKeyStore
+from app.mq_handlers import handle_heartbeat_message
+from app.mq_handlers import handle_result_message
+from app.mq_handlers import handle_status_message
 from app.util.sign_util import RSASigner
-from app.util.sign_util import verify_with_public_key
 
 signer = RSASigner(
     private_key_path=settings.sign_private_key_path,
     enabled=settings.sign_enabled,
 )
-public_key_store = PublicKeyStore()
 
 logger = logging.getLogger(__name__)
 
@@ -69,53 +67,10 @@ def _consume_results() -> None:
             channel.queue_bind(queue=settings.result_queue, exchange=settings.sys_result_exchange, routing_key="result.#")
 
             def callback(ch, method, properties, body) -> None:
-                signature = properties.headers.get("x-signature", "") if properties.headers else ""
-                header_timestamp = properties.headers.get("x-timestamp", 0) if properties.headers else 0
-                
-                if signature and header_timestamp:
-                    try:
-                        message_data = json.loads(body.decode("utf-8"))
-                        hostname = message_data.get("hostname", "")
-                        
-                        verify_data = {
-                            "hostname": hostname,
-                            "timestamp": header_timestamp
-                        }
-                        
-                        with SessionLocal() as db:
-                            public_key = public_key_store.get_public_key(db, hostname)
-                        verified = verify_with_public_key(
-                            verify_data,
-                            signature,
-                            public_key,
-                            settings.sign_enabled,
-                        )
-                        
-                        if not verified:
-                            logging.error("Failed to verify message signature")
-                            ch.basic_ack(delivery_tag=method.delivery_tag)
-                            return
-                    except Exception as e:
-                        logging.error(f"Error during signature verification: {e}")
-                        ch.basic_ack(delivery_tag=method.delivery_tag)
-                        return
-                
                 try:
-                    data = json.loads(body.decode("utf-8"))
-                    
-                    task_id = data.get("task_id")
-                    exit_code = data.get("exit_code")
-                    stdout = data.get("stdout")
-                    stderr = data.get("stderr")
-                    ts = data.get("timestamp")
-                    timestamp = datetime.fromtimestamp(ts, timezone.utc) if isinstance(ts, (int, float)) else datetime.now(timezone.utc)
-                    
-                    if task_id:
-                        with SessionLocal() as db:
-                            crud.create_task_result(db, task_id, exit_code, stdout, stderr, timestamp)
-                            crud.update_task_status(db, task_id, "done")
-                except Exception as e:
-                    logging.error(f"Error processing result message: {e}")
+                    handle_result_message(body, properties)
+                except Exception:
+                    logger.exception("result_message_handler_error")
                 finally:
                     ch.basic_ack(delivery_tag=method.delivery_tag)
 
@@ -141,52 +96,10 @@ def _consume_heartbeat() -> None:
             )
 
             def callback(ch, method, properties, body) -> None:
-                signature = properties.headers.get("x-signature", "") if properties.headers else ""
-                header_timestamp = properties.headers.get("x-timestamp", 0) if properties.headers else 0
-                
-                if signature and header_timestamp:
-                    try:
-                        message_data = json.loads(body.decode("utf-8"))
-                        hostname = message_data.get("hostname", "")
-                        
-                        verify_data = {
-                            "hostname": hostname,
-                            "timestamp": header_timestamp
-                        }
-                        
-                        with SessionLocal() as db:
-                            public_key = public_key_store.get_public_key(db, hostname)
-                        verified = verify_with_public_key(
-                            verify_data,
-                            signature,
-                            public_key,
-                            settings.sign_enabled,
-                        )
-                        
-                        if not verified:
-                            logging.error("Failed to verify heartbeat message signature")
-                            ch.basic_ack(delivery_tag=method.delivery_tag)
-                            return
-                    except Exception as e:
-                        logging.error(f"Error during heartbeat signature verification: {e}")
-                        ch.basic_ack(delivery_tag=method.delivery_tag)
-                        return
-                
                 try:
-                    data = json.loads(body.decode("utf-8"))
-                    
-                    hostname = data.get("hostname")
-                    status = data.get("status", "unknown")
-                    ts = data.get("timestamp")
-                    cpu_usage = data.get("cpu_usage")
-                    memory_usage = data.get("mem_usage")
-                    timestamp = datetime.fromtimestamp(ts, timezone.utc) if isinstance(ts, (int, float)) else datetime.now(timezone.utc)
-                    
-                    if hostname:
-                        with SessionLocal() as db:
-                            crud.update_heartbeat(db, hostname, status, timestamp, cpu_usage, memory_usage)
-                except Exception as e:
-                    logging.error(f"Error processing heartbeat message: {e}")
+                    handle_heartbeat_message(body, properties)
+                except Exception:
+                    logger.exception("heartbeat_message_handler_error")
                 finally:
                     ch.basic_ack(delivery_tag=method.delivery_tag)
 
@@ -198,6 +111,36 @@ def _consume_heartbeat() -> None:
             time.sleep(3)
 
 
+def _consume_status() -> None:
+    while True:
+        try:
+            connection = pika.BlockingConnection(pika.URLParameters(settings.rabbitmq_url))
+            channel = connection.channel()
+            channel.exchange_declare(exchange=settings.sys_result_exchange, exchange_type="topic", durable=True)
+            channel.queue_declare(queue=settings.status_queue, durable=True)
+            channel.queue_bind(
+                queue=settings.status_queue,
+                exchange=settings.sys_result_exchange,
+                routing_key=settings.status_routing_key,
+            )
+
+            def callback(ch, method, properties, body) -> None:
+                try:
+                    handle_status_message(body, properties)
+                except Exception:
+                    logger.exception("status_message_handler_error")
+                finally:
+                    ch.basic_ack(delivery_tag=method.delivery_tag)
+
+            channel.basic_qos(prefetch_count=1)
+            channel.basic_consume(queue=settings.status_queue, on_message_callback=callback)
+            channel.start_consuming()
+        except Exception:
+            logger.exception("status_consumer_error")
+            time.sleep(3)
+
+
 def start_consumers() -> None:
     threading.Thread(target=_consume_results, daemon=True).start()
     threading.Thread(target=_consume_heartbeat, daemon=True).start()
+    threading.Thread(target=_consume_status, daemon=True).start()

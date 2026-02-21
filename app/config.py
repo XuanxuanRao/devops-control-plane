@@ -12,6 +12,8 @@ class Settings:
         self.sys_result_exchange = os.getenv("SYS_RESULT_EXCHANGE", "sys_result_exchange")
         self.sys_monitor_exchange = os.getenv("SYS_MONITOR_EXCHANGE", "sys_monitor_exchange")
         self.result_queue = os.getenv("SYS_RESULT_QUEUE", "cmd.result")
+        self.status_queue = os.getenv("SYS_STATUS_QUEUE", "cmd.status")
+        self.status_routing_key = os.getenv("SYS_STATUS_ROUTING_KEY", "status.node.#")
         self.monitor_queue = os.getenv("SYS_MONITOR_QUEUE", "monitor.heartbeat")
         self.heartbeat_routing_key = os.getenv("HEARTBEAT_ROUTING_KEY", "heartbeat")
         self.sign_enabled = os.getenv("SIGN_ENABLED", "true").lower() in {"1", "true", "yes", "on"}
