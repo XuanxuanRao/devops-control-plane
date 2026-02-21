@@ -108,7 +108,7 @@ def handle_status_message(body: bytes, properties: Any) -> bool:
         if not task_id or not status:
             logger.error("Missing task_id or status in status message")
             return False
-        allowed_statuses = {"pending", "received", "rejected", "done"}
+        allowed_statuses = {"pending", "sent", "received", "rejected", "done"}
         if status not in allowed_statuses:
             logger.error(f"Invalid status value: {status}")
             return False
@@ -121,7 +121,8 @@ def handle_status_message(body: bytes, properties: Any) -> bool:
             if current_status == status:
                 return True
             transitions = {
-                "pending": {"received", "rejected"},
+                "pending": {"sent", "received", "rejected"},
+                "sent": {"received", "rejected"},
                 "received": {"done", "rejected"},
                 "rejected": set(),
                 "done": set(),
