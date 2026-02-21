@@ -117,7 +117,7 @@ def handle_status_message(body: bytes, properties: Any) -> bool:
             if not task:
                 logger.error(f"Task not found: {task_id}")
                 return False
-            current_status = task.status or "pending"
+            current_status = task.status
             if current_status == status:
                 return True
             transitions = {
@@ -129,7 +129,8 @@ def handle_status_message(body: bytes, properties: Any) -> bool:
             if status not in transitions.get(current_status, set()):
                 logger.error(f"Invalid status transition: {current_status} -> {status}")
                 return False
-            crud.update_task_status(db, task_id, status)
+            task.status = status
+            db.commit()
         if status == "rejected" and reason:
             logger.info(f"Task {task_id} rejected: {reason}")
     except Exception as exc:

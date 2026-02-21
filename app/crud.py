@@ -46,7 +46,7 @@ def get_task_by_id(db: Session, task_id: str) -> Optional[models.Task]:
 
 
 def update_task_status(db: Session, task_id: str, status: str) -> None:
-    task = db.execute(select(models.Task).where(models.Task.task_id == task_id)).scalars().first()
+    task = get_task_by_id(db, task_id)
     if task:
         task.status = status
         db.commit()
