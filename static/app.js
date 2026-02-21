@@ -148,20 +148,29 @@ saveBtn.addEventListener('click', async () => {
   }
   
   try {
-    const res = await fetch(`/api/client-keys/${hostname}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ public_key_pem: publicKeyPem || '' }),
-    });
+    let res;
+    if (publicKeyPem) {
+      // 有公钥内容，发送PUT请求更新
+      res = await fetch(`/api/client-keys/${hostname}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ public_key_pem: publicKeyPem }),
+      });
+    } else {
+      // 公钥为空，发送DELETE请求删除
+      res = await fetch(`/api/client-keys/${hostname}`, {
+        method: 'DELETE',
+      });
+    }
     
     if (res.ok) {
-      alert('公钥保存成功');
+      alert(publicKeyPem ? '公钥保存成功' : '公钥删除成功');
       keyModal.style.display = 'none';
     } else {
-      const error = await res.json();
-      alert(`保存失败: ${error.detail || '未知错误'}`);
+      const error = await res.json().catch(() => ({}));
+      alert(`操作失败: ${error.detail || '未知错误'}`);
     }
   } catch (err) {
-    alert('保存失败: 网络错误');
+    alert('操作失败: 网络错误');
   }
 });
