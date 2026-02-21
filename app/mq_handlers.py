@@ -66,7 +66,18 @@ def handle_result_message(body: bytes, properties: Any) -> bool:
         if task_id:
             with SessionLocal() as db:
                 crud.create_task_result(db, task_id, exit_code, stdout, stderr, timestamp)
-                crud.update_task_status(db, task_id, "done")
+                task = crud.get_task_by_id(db, task_id)
+                if not task:
+                    logger.error(f"Task not found: {task_id}")
+                    return False
+                current_status = task.status
+                if current_status == "done":
+                    return True
+                if current_status not in {"pending", "sent", "received"}:
+                    logger.error(f"Invalid status transition: {current_status} -> done")
+                    return False
+                task.status = "done"
+                db.commit()
     except Exception as exc:
         logger.error(f"Error processing result message: {exc}")
         return False
