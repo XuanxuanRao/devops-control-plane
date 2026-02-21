@@ -41,6 +41,10 @@ def create_task(db: Session, task: models.Task) -> models.Task:
     return task
 
 
+def get_task_by_id(db: Session, task_id: str) -> Optional[models.Task]:
+    return db.execute(select(models.Task).where(models.Task.task_id == task_id)).scalars().first()
+
+
 def update_task_status(db: Session, task_id: str, status: str) -> None:
     task = db.execute(select(models.Task).where(models.Task.task_id == task_id)).scalars().first()
     if task:

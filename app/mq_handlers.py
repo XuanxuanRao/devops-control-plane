@@ -108,10 +108,27 @@ def handle_status_message(body: bytes, properties: Any) -> bool:
         if not task_id or not status:
             logger.error("Missing task_id or status in status message")
             return False
-        if status not in {"received", "rejected"}:
+        allowed_statuses = {"pending", "received", "rejected", "done"}
+        if status not in allowed_statuses:
             logger.error(f"Invalid status value: {status}")
             return False
         with SessionLocal() as db:
+            task = crud.get_task_by_id(db, task_id)
+            if not task:
+                logger.error(f"Task not found: {task_id}")
+                return False
+            current_status = task.status or "pending"
+            if current_status == status:
+                return True
+            transitions = {
+                "pending": {"received", "rejected"},
+                "received": {"done", "rejected"},
+                "rejected": set(),
+                "done": set(),
+            }
+            if status not in transitions.get(current_status, set()):
+                logger.error(f"Invalid status transition: {current_status} -> {status}")
+                return False
             crud.update_task_status(db, task_id, status)
         if status == "rejected" and reason:
             logger.info(f"Task {task_id} rejected: {reason}")
